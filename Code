@@ -1,0 +1,208 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip>
+#include <ctime>
+#include <limits>
+#include <fstream>
+
+using namespace std;
+ Colors for terminal
+ =======================
+#define RESET "\033[0m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+#define CYAN "\033[36m"
+#define MAGENTA "\033[35m"
+
+ Conversion Functions
+// =======================
+double CelsiusToFahrenheit(double c) { return (c * 9.0 / 5.0) + 32; }
+double CelsiusToKelvin(double c) { return c + 273.15; }
+double CelsiusToRankine(double c) { return (c + 273.15) * 9.0 / 5.0; }
+
+double FahrenheitToCelsius(double f) { return (f - 32) * 5.0 / 9.0; }
+double FahrenheitToKelvin(double f) { return (f + 459.67) * 5.0 / 9.0; }
+double FahrenheitToRankine(double f) { return f + 459.67; }
+
+double KelvinToCelsius(double k) { return k - 273.15; }
+double KelvinToFahrenheit(double k) { return (k * 9.0 / 5.0) - 459.67; }
+double KelvinToRankine(double k) { return k * 9.0 / 5.0; }
+
+double RankineToCelsius(double r) { return (r - 491.67) * 5.0 / 9.0; }
+double RankineToFahrenheit(double r) { return r - 459.67; }
+double RankineToKelvin(double r) { return r * 5.0 / 9.0; }
+ Conversion History
+// =======================
+struct Conversion
+{
+    string fromScale;
+    string toScale;
+    double inputValue;
+    double resultValue;
+    string timestamp;
+};
+
+vector<Conversion> history;
+// Utility Functions
+// =======================
+string currentTime()
+{
+    time_t now = time(0);
+    char buf[80];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %X", localtime(&now));
+    return string(buf);
+}
+
+void saveConversion(const string &from, const string &to, double input, double result)
+{
+    history.push_back({from, to, input, result, currentTime()});
+}
+
+double getValidatedInput(const string &prompt)
+{
+    double value;
+    while (true)
+    {
+        cout << CYAN << prompt << RESET;
+        cin >> value;
+        if (cin.fail())
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << RED << "Invalid input! Enter a numeric value.\n"
+                 << RESET;
+        }
+        else
+        {
+            return value;
+        }
+    }
+}
+Display Functions
+// =======================
+void displayHistory()
+{
+    if (history.empty())
+    {
+        cout << YELLOW << "No conversions yet.\n"
+             << RESET;
+        return;
+    }
+
+    cout << MAGENTA << setw(10) << "From"
+         << setw(10) << "To"
+         << setw(12) << "Input"
+         << setw(12) << "Result"
+         << setw(20) << "Timestamp" << RESET << endl;
+    cout << string(64, '-') << endl;
+
+    for (auto &h : history)
+    {
+        cout << setw(10) << h.fromScale
+             << setw(10) << h.toScale
+             << setw(12) << fixed << setprecision(2) << h.inputValue
+             << setw(12) << fixed << setprecision(2) << h.resultValue
+             << setw(20) << h.timestamp
+             << endl;
+    }
+}
+
+// Function to display conversions nicely
+void showConversions(const string &from, double value, double (*funcs[])(double), const string scales[], int n)
+{
+    cout << GREEN << "\nConversion Results:\n"
+         << RESET;
+    for (int i = 0; i < n; i++)
+    {
+        double result = funcs[i](value);
+        cout << setw(12) << scales[i] << ": "
+             << fixed << setprecision(2) << result << endl;
+        saveConversion(from, scales[i], value, result);
+    }
+}
+Menu
+// =======================
+void showMenu()
+{
+    cout << BLUE << "\n===== Mega Temperature Converter =====\n"
+         << RESET;
+    cout << "1. Celsius Conversion\n";
+    cout << "2. Fahrenheit Conversion\n";
+    cout << "3. Kelvin Conversion\n";
+    cout << "4. Rankine Conversion\n";
+    cout << "5. View Conversion History\n";
+    cout << "6. Exit\n";
+    cout << "Enter your choice: ";
+}
+
+int main()
+{
+    int choice;
+    double temp;
+
+    do
+    {
+        showMenu();
+        cin >> choice;
+
+        switch (choice)
+        {
+        case 1:
+        {
+            temp = getValidatedInput("Enter temperature in Celsius: ");
+            double (*funcs[])(double) = {CelsiusToFahrenheit, CelsiusToKelvin, CelsiusToRankine};
+            string scales[] = {"Fahrenheit", "Kelvin", "Rankine"};
+            showConversions("Celsius", temp, funcs, scales, 3);
+            break;
+        }
+        case 2:
+        {
+            temp = getValidatedInput("Enter temperature in Fahrenheit: ");
+            double (*funcs[])(double) = {FahrenheitToCelsius, FahrenheitToKelvin, FahrenheitToRankine};
+            string scales[] = {"Celsius", "Kelvin", "Rankine"};
+            showConversions("Fahrenheit", temp, funcs, scales, 3);
+            break;
+        }
+        case 3:
+        {
+            temp = getValidatedInput("Enter temperature in Kelvin: ");
+            if (temp < 0)
+            {
+                cout << RED << "Kelvin cannot be negative!\n"
+                     << RESET;
+                break;
+            }
+            double (*funcs[])(double) = {KelvinToCelsius, KelvinToFahrenheit, KelvinToRankine};
+            string scales[] = {"Celsius", "Fahrenheit", "Rankine"};
+            showConversions("Kelvin", temp, funcs, scales, 3);
+            break;
+        }
+        case 4:
+        {
+            temp = getValidatedInput("Enter temperature in Rankine: ");
+            double (*funcs[])(double) = {RankineToCelsius, RankineToFahrenheit, RankineToKelvin};
+            string scales[] = {"Celsius", "Fahrenheit", "Kelvin"};
+            showConversions("Rankine", temp, funcs, scales, 3);
+            break;
+        }
+        case 5:
+            displayHistory();
+            break;
+        case 6:
+            cout << GREEN << "Thank you for using Mega Temperature Converter! Exiting...\n"
+                 << RESET;
+            break;
+        default:
+            cout << RED << "Invalid choice! Try again.\n"
+                 << RESET;
+        }
+
+    } while (choice != 6);
+
+    return 0;
+}
+
+
